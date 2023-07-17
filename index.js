@@ -41,6 +41,8 @@ const server = https.createServer(app, creds);
 const whisperPath = path.resolve('whisper.exe');
 const modelType = "small.en";
 
+const posts = [];
+
 const basicChat = new ChatOpenAI({ temperature: 0.8, openAIApiKey: process.env.OPENAI_API_KEY });
 
 async function sleep(ms) {
@@ -87,6 +89,50 @@ app.post('/transcribe', upload.single('audio'), (req, res) => {
     });
     console.log("[+] - New audio upload! Transcribing...");
     res.json({ status: 'success' });
+});
+
+app.get('/blog/posts', (req, res) => {
+    res.status(200).json(posts);
+});
+
+app.post('/blog/image', (req, res) => {
+
+});
+
+app.get('/about', (req, res) => {
+
+});
+
+app.get('/admin', (req, res) => {
+
+});
+
+app.get('/casino', (req, res) => {
+
+});
+
+app.get('/claw', (req, res) => {
+
+});
+
+app.get('/contact', (req, res) => {
+
+});
+
+app.get('/home', (req, res) => {
+
+});
+
+app.get('/invest', (req, res) => {
+
+});
+
+app.get('/lake', (req, res) => {
+
+});
+
+app.get('/projects', (req, res) => {
+
 });
 
 server.listen(8081, () => {
