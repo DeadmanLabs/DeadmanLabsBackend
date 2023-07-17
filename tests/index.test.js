@@ -99,49 +99,65 @@ describe("POST /", () => {
 });
 
 test('Solana Send Payment', async () => {
+    console.log(`Generating wallets...`);
     const walletPrimary = solana.Keypair.generate();
     const walletSecondary = solana.Keypair.generate();
+    console.log(`Airdropping...`);
     const airdropSignature = await payments.solanaNetwork.requestAirdrop(
         walletPrimary.publicKey,
         solana.LAMPORTS_PER_SOL
     );
+    console.log(`Sending Transaction...`);
     await sleep(1000);
     await payments.solanaNetwork.confirmTransaction(airdropSignature);
     const response = await payments.sendSolana(walletPrimary, walletSecondary.publicKey, 0.5);
-    await sleep(1000);
+    console.log(`Grabbing Balance...`);
+    await sleep(5000);
     expect(typeof response).toBe('string');
     let balanceSecondary = await payments.solanaNetwork.getBalance(walletSecondary.publicKey);
-    await sleep(1000);
+    console.log(`Checking Balance...`);
+    await sleep(5000);
     balanceSecondary = balanceSecondary / solana.LAMPORTS_PER_SOL;
+    console.log(`Done!`);
     expect(balanceSecondary).toBe(0.5);
 });
 
 test('Solana Send SPL Payment', async () => {
+    console.log(`Generating wallets...`);
     const walletPrimary = solana.Keypair.generate();
     const walletSecondary = solana.Keypair.generate();
+    console.log(`Airdropping...`);
     const airdropSignature = await payments.solanaNetwork.requestAirdrop(
         walletPrimary.publicKey,
         solana.LAMPORTS_PER_SOL
     );
-    await sleep(1000);
+    console.log(`Confirming Airdrop...`);
+    await sleep(5000);
     await payments.solanaNetwork.confirmTransaction(airdropSignature);
-    await sleep(1000);
+    console.log(`Creating Test SPL Token...`);
+    await sleep(5000);
     const testToken = await createTestToken(walletPrimary);
-    await sleep(1000);
+    console.log(`Minting Test SPL Token...`);
+    await sleep(5000);
     const mintSignature = await mintTestToken(walletPrimary, testToken.toString(), 100.00);
-    await sleep(1000);
+    console.log(`Confirming Mint...`);
+    await sleep(5000);
     await payments.solanaNetwork.confirmTransaction(mintSignature);
-    await sleep(1000);
+    console.log(`Sending SPL Transaction...`);
+    await sleep(5000);
     const response = await payments.sendSolanaToken(walletPrimary, walletSecondary.publicKey, 50.00, testToken.toString());
-    await sleep(1000);
+    console.log(`Grabbing Decimals...`);
+    await sleep(5000);
     expect(typeof response).toBe('string');
     let mintInfo = await solanaSPL.getMint(
         payments.solanaNetwork,
         testToken
     );
-    await sleep(1000);
+    console.log(`Grabbing Balance...`);
+    await sleep(5000);
     const tokenAccountSecondary = await solanaSPL.getOrCreateAssociatedTokenAccount(payments.solanaNetwork, walletPrimary, testToken, walletSecondary.publicKey);
-    await sleep(1000);
+    console.log(`Checking Balance...`);
+    await sleep(5000);
     const balance = Number(tokenAccountSecondary.amount) / (10 ** mintInfo.decimals);
     expect(balance).toBe(50.00);
 });
