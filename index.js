@@ -13,6 +13,7 @@ const childProcess = require('child_process');
 const path = require('path');
 const fetch = require('node-fetch');
 const musicMeta = require('music-metadata');
+const { RTCPeerConnection, RTCSessionDescription, RTCIceCandidate } = require('node-webrtc');
 
 const { ChatOpenAI } = require('langchain/chat_models/openai');
 const { HumanChatMessage, SystemChatMessage } = require('langchain/schema');
@@ -49,12 +50,33 @@ const obsidianServerPort = 4444;
 //Blog Settings
 const posts = [];
 
+//WebRTC Streams
+const webRTCio = socketio(server);
+webRTCio.on('connection', (socket) => {
+    socket.on('offer', async (offer, callback) => {
+        const pc = new RTCPeerConnection({
+            iceServers: [
+                {
+                    urls: '',
+                },
+            ],
+        });
+        pc.onicecandidate = ({ candidate }) => {
+            if (candidate) {
+                socket.emit('ice-candidate', candidate.toJSON());
+            }
+        };
+        pc.ontrack = (event) => {
+            console.log('')
+        }
+    });
+});
+
+//Time Settings
 const getCurrentTime = () => {
     const now = new Date();
     return now.getHours() + ":" + now.getMinutes() + ":" + now.getSeconds();
 };
-
-//Time Settings
 const units = ['day', 'hour', 'min', 'sec'];
 const lengths = [24*60*60, 60*60, 60, 1];
 const formatDuration = (s) => {
