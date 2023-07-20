@@ -194,10 +194,6 @@ app.get('/blog/posts', (req, res) => {
 });
 
 app.post('/blog/image', (req, res) => {
-    
-});
-
-app.get('/about', (req, res) => {
 
 });
 
