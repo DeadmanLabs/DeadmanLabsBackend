@@ -11,9 +11,8 @@ const socketio = require('socket.io');
 const multer = require('multer');
 const childProcess = require('child_process');
 const path = require('path');
-const fetch = require('node-fetch');
-const musicMeta = require('music-metadata');
-const { RTCPeerConnection, RTCSessionDescription, RTCIceCandidate } = require('node-webrtc');
+const axios = require('axios');
+const ffprobe = require('ffprobe-client');
 
 const { ChatOpenAI } = require('langchain/chat_models/openai');
 const { HumanChatMessage, SystemChatMessage } = require('langchain/schema');
@@ -52,23 +51,27 @@ const posts = [];
 
 //WebRTC Streams
 const webRTCio = socketio(server);
-webRTCio.on('connection', (socket) => {
-    socket.on('offer', async (offer, callback) => {
-        const pc = new RTCPeerConnection({
-            iceServers: [
-                {
-                    urls: '',
-                },
-            ],
-        });
-        pc.onicecandidate = ({ candidate }) => {
-            if (candidate) {
-                socket.emit('ice-candidate', candidate.toJSON());
-            }
-        };
-        pc.ontrack = (event) => {
-            console.log('')
-        }
+webRTCio.on("error", e => console.error(e));
+let broadcaster
+webRTCio.on("connection", socket => {
+    socket.on("broadcaster", () => {
+        broadcaster = socket.id;
+        socket.broadcast.emit("broadcaster");
+    });
+    socket.on("watcher", () => {
+        socket.to(broadcaster).emit("watcher", socket.id);
+    });
+    socket.on("disconnect", () => {
+        socket.to(broadcaster).emit("disconnectPeer", socket.id);
+    });
+    socket.on("offer", (id, message) => {
+        socket.to(id).emit("offer", socket.id, message);
+    });
+    socket.on("answer", (id, message) => {
+        socket.to(id).emit("answer", socket.id, message);
+    });
+    socket.on("candidate", (id, message) => {
+        socket.to(id).emit("candidate", socket.id, )
     });
 });
 
@@ -93,9 +96,14 @@ const formatDuration = (s) => {
 }
 
 async function getAudioDuration(filename) {
-    const metadata = await musicMeta.parseFile(filename);
-    const duration = metadata.format.duration;
-    return formatDuration(duration);
+    ffprobe(filename)
+        .then(info => {
+            return info.format.duration;
+        })
+        .catch(error => {
+            console.error(error);
+            return undefined;
+        });
 }
 
 async function sleep(ms) {
@@ -162,16 +170,9 @@ async function handleTranscribe(transcription, file) {
         .replace("[insertDate]", new Date().toString())
         .replace("[insertTime]", getCurrentTime())
         .replace("[insertDuration]", await getAudioDuration(file));
-    const response = await fetch(`https://127.0.0.1:${obsidianServerPort}/insert`, 
-    {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-            title: titleNote.content.replace('"', ''),
-            body: markDown.content
-        })
+    const response = await axios.post(`https://127.0.0.1:${obsidianServerPort}/insert`, {
+        title: titleNote.content.replace('"', ''),
+        body: markDown.content
     });
     return response;
 }
